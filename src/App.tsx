@@ -1,6 +1,8 @@
-import { useState } from "react";
-import "./App.scss";
+import { ChangeEvent, useRef, useState } from "react";
 import avatar from "./images/bozai.png";
+import dayjs from "dayjs";
+import {v4 as uuidv4} from "uuid";
+import "./App.scss";
 
 interface User {
   uid: string;
@@ -9,7 +11,7 @@ interface User {
 }
 
 interface Comment {
-  rpid: number;
+  rpid: string;
   user: User;
   content: string;
   ctime: string;
@@ -20,7 +22,7 @@ interface Comment {
 const defaultList = [
   {
     // comment id
-    rpid: 3,
+    rpid: "3",
     // user info
     user: {
       uid: "13258165",
@@ -34,7 +36,7 @@ const defaultList = [
     like: 88,
   },
   {
-    rpid: 2,
+    rpid: "2",
     user: {
       uid: "36080105",
       avatar: "",
@@ -45,7 +47,7 @@ const defaultList = [
     like: 88,
   },
   {
-    rpid: 1,
+    rpid: "1",
     user: {
       uid: "30009257",
       avatar,
@@ -79,9 +81,9 @@ const tabs = [
 const getSortedComments = (commentList: Comment[], sortBy: string ) => {
   return [...commentList].sort((a, b) => {
     if(sortBy === "newest") {
-      const firstDate = new Date(`2024-${a?.ctime}`);
-      const secondDate = new Date(`2024-${b?.ctime}`);
-      return secondDate?.getTime() - firstDate?.getTime();
+      const firstDate = dayjs(a?.ctime, "MM-DD HH:mm");
+      const secondDate = dayjs(b?.ctime, "MM-DD HH:mm");
+      return secondDate?.valueOf() - firstDate?.valueOf();
     } else if (sortBy === "hot") {
       return b?.like - a?.like;
     }
@@ -90,10 +92,13 @@ const getSortedComments = (commentList: Comment[], sortBy: string ) => {
 }
 
 const App = () => {
-  const [commentList, setCommentList] = useState(defaultList);
-  const [tabType, setTabType] = useState("newest");
+  const [commentList, setCommentList] = useState<Comment[]>(defaultList);
+  console.log(commentList);
+  const [tabType, setTabType] = useState<string>("");
+  const [content, setContent] = useState<string>("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleDeleteOnClick = (id: Number) => {
+  const handleDeleteOnClick = (id: string) => {
     const updatedCommentList = commentList?.filter(({ rpid }) => rpid !== id);
     setCommentList(updatedCommentList);
   };
@@ -103,6 +108,28 @@ const App = () => {
 
     const sortedComments = getSortedComments(commentList, type);
     setCommentList(sortedComments);
+  }
+
+  const handleContentOnChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e?.target?.value);
+  }
+
+  const handlePostButtonOnClick = (userInfo: User, contentInfo: string) => {
+    const newItem = {
+      rpid: uuidv4(),
+      user: userInfo,
+      content: contentInfo,
+      ctime: dayjs().format("MM-DD HH:mm"),
+      like: 0
+    }
+
+    const sortedComments = getSortedComments([...commentList, newItem], tabType)
+
+    setCommentList(sortedComments);
+    setContent("");
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
   }
 
   return (
@@ -122,7 +149,6 @@ const App = () => {
                 tabType === tabs[0]?.type ? "active" : ""
               }`}
               onClick={() => handleTabOnClick(tabs[0]?.type)}
-              // onClick={() => setTabType(tabs[0]?.type)}
             >
               {tabs[0]?.text}
             </span>
@@ -131,7 +157,6 @@ const App = () => {
                 tabType === tabs[1]?.type ? "active" : ""
               }`}
               onClick={() => handleTabOnClick(tabs[1]?.type)}
-              // onClick={() => setTabType(tabs[1]?.type)}
             >
               {tabs[1]?.text}
             </span>
@@ -155,11 +180,14 @@ const App = () => {
           <div className="reply-box-wrap">
             {/* comment */}
             <textarea
+              ref={textareaRef}
               className="reply-box-textarea"
               placeholder="tell something..."
+              value={content}
+              onChange={handleContentOnChange}
             />
             {/* post button */}
-            <div className="reply-box-send">
+            <div className="reply-box-send" onClick={() => handlePostButtonOnClick(currentUser, content)}>
               <div className="send-text">post</div>
             </div>
           </div>
