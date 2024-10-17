@@ -1,50 +1,32 @@
-import React, { ChangeEvent, useRef } from "react";
-
-interface User {
-  uid: string;
-  avatar: string;
-  uname: string;
-}
-
-interface Comment {
-  rpid: string;
-  user: User;
-  content: string;
-  ctime: string;
-  like: number;
-}
-
-interface AppProps {
-  commentList: Comment[];
-  tabType: string;
-  content: string;
-  currentUser: User;
-  onPostComment: (userInfo: User, contentInfo: string) => void;
-  onChangeContent: (e: ChangeEvent<HTMLTextAreaElement>) => void;
-  onDeleteComment: (id: string) => void;
-  onSortComment: (type: string) => void;
-}
+import React, { ChangeEvent, useRef, useState } from "react";
+import { useComments } from "./context/CommentContext";
+import dayjs from "dayjs";
+import { v4 as uuidv4 } from "uuid";
 
 const tabs = [
   { type: "hot", text: "Top" },
   { type: "newest", text: "Newest" },
 ];
 
-const StatelessComment = ({
-  commentList,
-  tabType,
-  content,
-  currentUser,
-  onDeleteComment,
-  onSortComment,
-  onChangeContent,
-  onPostComment,
-}:AppProps) => {
+const StatelessComment = () => {
+  const {tabType, currentUser, commentList, addComment, deleteComment, setTabType } = useComments();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [content, setContent] = useState<string>("");
+
+  const onChangeContent = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e?.target?.value);
+  };
 
   const handlePostButtonOnClick = () => {
     if(content?.trim()) {
-      onPostComment(currentUser, content);
+      const newItem = {
+        rpid: uuidv4(),
+        user: currentUser,
+        content: content,
+        ctime: dayjs().format("MM-DD HH:mm"),
+        like: 0,
+      };
+      addComment(newItem);
       if (textareaRef.current) {
         textareaRef.current.focus();
       }
@@ -66,7 +48,7 @@ const StatelessComment = ({
               className={`nav-item ${
                 tabType === tabs[0]?.type ? "active" : ""
               }`}
-              onClick={() => onSortComment(tabs[0]?.type)}
+              onClick={() => setTabType(tabs[0]?.type)}
             >
               {tabs[0]?.text}
             </span>
@@ -74,7 +56,7 @@ const StatelessComment = ({
               className={`nav-item ${
                 tabType === tabs[1]?.type ? "active" : ""
               }`}
-              onClick={() => onSortComment(tabs[1]?.type)}
+              onClick={() => setTabType(tabs[1]?.type)}
             >
               {tabs[1]?.text}
             </span>
@@ -142,7 +124,7 @@ const StatelessComment = ({
                     {user?.uid === currentUser?.uid ? (
                       <span
                         className="delete-btn"
-                        onClick={() => onDeleteComment(rpid)}
+                        onClick={() => deleteComment(rpid)}
                       >
                         Delete
                       </span>
